@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cite Check</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,900&family=Newsreader:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a1714; --paper:#f4efe6; --paper2:#ebe3d5; --rule:#d8cdb8;
+    --oxblood:#6e1423; --forest:#2f4a3c; --gold:#a8762e;
+    --err:#8a1f1f; --warn:#9a6a16; --info:#4a5d6e; --mute:#6a6055;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Newsreader',serif;background:var(--paper);color:var(--ink);padding:14px;font-size:14px;}
+  .head{border-bottom:3px double var(--ink);padding-bottom:10px;margin-bottom:12px;}
+  .kick{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--oxblood);}
+  h1{font-family:'Fraunces',serif;font-weight:900;font-size:30px;line-height:.95;margin-top:3px;}
+  h1 em{font-style:italic;color:var(--oxblood);}
+  .btn{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    padding:10px 14px;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;width:100%;margin-top:10px;border-radius:2px;}
+  .btn:hover{background:var(--oxblood);border-color:var(--oxblood);}
+  .btn.ghost{background:transparent;color:var(--ink);}
+  .btn.ghost:hover{background:var(--ink);color:var(--paper);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .score{display:flex;gap:6px;margin:12px 0;}
+  .cell{flex:1;border:1px solid var(--ink);background:#fff;padding:8px 6px;text-align:center;}
+  .cell .n{font-family:'Fraunces',serif;font-weight:900;font-size:24px;line-height:1;}
+  .cell .l{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin-top:3px;}
+  .cell.err .n{color:var(--err);} .cell.warn .n{color:var(--warn);} .cell.info .n{color:var(--info);}
+  .fn{border-left:3px solid var(--rule);background:#fff;margin-bottom:9px;padding:9px 11px;}
+  .fn-h{display:flex;align-items:baseline;gap:8px;border-bottom:1px solid var(--paper2);padding-bottom:5px;margin-bottom:6px;}
+  .fn-n{font-family:'Fraunces',serif;font-weight:900;font-size:16px;color:var(--oxblood);}
+  .goto{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--forest);background:rgba(47,74,60,.1);border:none;padding:3px 7px;cursor:pointer;border-radius:2px;}
+  .goto:hover{background:var(--forest);color:#fff;}
+  .iss{display:flex;gap:7px;padding:4px 0;align-items:flex-start;}
+  .badge{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:2px 5px;border-radius:2px;white-space:nowrap;margin-top:2px;color:#fff;}
+  .badge.error{background:var(--err);} .badge.warning{background:var(--warn);}
+  .badge.info{background:var(--info);} .badge.ai{background:var(--forest);}
+  .iss .layer{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:#9a8f80;}
+  .iss .fix{color:var(--forest);font-style:italic;font-size:13px;margin-top:1px;}
+  .msg{font-style:italic;color:var(--mute);margin-top:10px;font-size:13px;}
+  .err-msg{color:var(--err);font-style:italic;margin-top:10px;font-size:13px;}
+  .clean{text-align:center;padding:24px 8px;font-family:'Fraunces',serif;font-style:italic;font-size:18px;color:var(--forest);}
+  .spin{display:inline-block;width:11px;height:11px;border:2px solid var(--paper);border-top-color:var(--oxblood);border-radius:50%;animation:s .7s linear infinite;vertical-align:middle;margin-right:5px;}
+  @keyframes s{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="kick">Bluebook · Footnotes · In Word</div>
+    <h1>Cite <em>Check</em></h1>
+  </div>
+
+  <button class="btn" id="run">Check Citations</button>
+  <button class="btn ghost" id="ai" style="display:none;">★ AI Review</button>
+
+  <div class="err-msg" id="err"></div>
+  <div id="summary"></div>
+  <div id="findings"></div>
+
+<script src="engine.js"></script>
+<script src="word.js"></script>
+<script>
+let CURRENT = { notes: [], findings: [] };
+
+Office.onReady(function(info){
+  if(info.host !== Office.HostType.Word){
+    document.getElementById("err").textContent = "This add-in runs in Microsoft Word.";
+    document.getElementById("run").disabled = true;
+  }
+});
+
+function el(id){ return document.getElementById(id); }
+function esc(s){ return (s||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+el("run").addEventListener("click", async () => {
+  el("err").textContent = "";
+  const btn = el("run"); btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Reading footnotes…';
+  try {
+    const notes = await window.CiteCheckWord.readFootnotesFromWord();
+    if(!notes.length){
+      el("err").textContent = "No footnotes found in this document.";
+      el("summary").innerHTML = ""; el("findings").innerHTML = "";
+    } else {
+      CURRENT.notes = notes;
+      CURRENT.findings = window.CiteCheckEngine.runRules(notes);
+      el("ai").style.display = "block";
+      render();
+    }
+  } catch(e){
+    el("err").textContent = "Couldn't read the document: " + (e.message || e);
+  }
+  btn.disabled = false; btn.textContent = "Check Citations";
+});
+
+el("ai").addEventListener("click", async () => {
+  if(!CURRENT.notes.length) return;
+  const btn = el("ai"); const orig = btn.textContent;
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Reviewing…';
+  try {
+    const ai = await window.CiteCheckEngine.aiReview(CURRENT.notes);
+    CURRENT.findings = CURRENT.findings.filter(f => f.severity !== "ai").concat(ai);
+    CURRENT.findings.sort((a,b) => a.note - b.note || a.layer.localeCompare(b.layer));
+    render();
+  } catch(e){
+    el("err").textContent = "AI review: " + (e.message || e);
+  }
+  btn.disabled = false; btn.textContent = orig;
+});
+
+function render(){
+  const f = CURRENT.findings;
+  const sev = { error:0, warning:0, info:0 };
+  f.forEach(x => { if(sev[x.severity] !== undefined) sev[x.severity]++; });
+  const ai = f.filter(x => x.severity === "ai").length;
+  el("summary").innerHTML =
+    `<div class="score">
+      <div class="cell"><div class="n">${CURRENT.notes.length}</div><div class="l">Footnotes</div></div>
+      <div class="cell err"><div class="n">${sev.error}</div><div class="l">Errors</div></div>
+      <div class="cell warn"><div class="n">${sev.warning}</div><div class="l">Warnings</div></div>
+      <div class="cell info"><div class="n">${sev.info + ai}</div><div class="l">Notices</div></div>
+    </div>`;
+
+  const byNote = {};
+  f.forEach(x => { (byNote[x.note] = byNote[x.note] || []).push(x); });
+  const keys = Object.keys(byNote).map(Number).sort((a,b)=>a-b);
+  if(!keys.length){
+    el("findings").innerHTML = `<div class="clean">No issues flagged across ${CURRENT.notes.length} footnotes.</div>`;
+    return;
+  }
+  el("findings").innerHTML = keys.map(note => {
+    const n = CURRENT.notes.find(x => x.id === note) || {};
+    const idx = n._index;
+    const issues = byNote[note].map(x => `
+      <div class="iss">
+        <span class="badge ${x.severity}">${x.severity === "ai" ? "AI" : x.severity}</span>
+        <div><span class="layer">${x.layer}${x.rule ? ` · ${esc(x.rule)}` : ""}</span><br>${esc(x.issue)}
+        ${x.suggestion ? `<div class="fix">→ ${esc(x.suggestion)}</div>` : ""}</div>
+      </div>`).join("");
+    return `<div class="fn">
+      <div class="fn-h"><span class="fn-n">Note ${note}</span>
+        <button class="goto" data-idx="${idx}">Go to ›</button></div>
+      ${issues}</div>`;
+  }).join("");
+
+  // wire up Go-to buttons
+  document.querySelectorAll(".goto").forEach(b => {
+    b.addEventListener("click", () => window.CiteCheckWord.jumpToFootnote(+b.dataset.idx));
+  });
+}
+</script>
+</body>
+</html>
