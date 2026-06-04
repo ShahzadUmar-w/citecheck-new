@@ -2,10 +2,10 @@
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>46de8672-1d1d-48ac-97cb-71db2f16936f</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>Contoso</ProviderName>
+  <ProviderName>Cite Check</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="citecheck-addin"/>
-  <Description DefaultValue="A template to get started."/>
+  <Description DefaultValue="Bluebook footnote validation inside Word. Reads footnotes in document order; flags structure, abbreviation, and Id./supra issues. Nothing is uploaded."/>
   <IconUrl DefaultValue="https://citecheck-new.vercel.app/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://citecheck-new.vercel.app/assets/icon-64.png"/>
   <SupportUrl DefaultValue="https://www.contoso.com/help"/>
@@ -72,13 +72,13 @@
         <bt:Url id="Taskpane.Url" DefaultValue="https://citecheck-new.vercel.app/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with your sample add-in!"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with your Cite Check add-in!"/>
         <bt:String id="CommandsGroup.Label" DefaultValue="Commands Group"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="Show Task Pane"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Show Cite Check "/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="Your sample add-in loaded successfully. Go to the HOME tab and click the 'Show Task Pane' button to get started."/>
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to Show a Taskpane"/>
+        <bt:String id="GetStarted.Description" DefaultValue="Bluebook footnote validation inside Word. Reads footnotes in document order; flags structure, abbreviation, and Id./supra issues. Nothing is uploaded."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open the Home tab and click Check Citations to validate your footnotes."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
